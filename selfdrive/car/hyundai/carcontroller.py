@@ -44,7 +44,7 @@ def process_hud_alert(enabled, fingerprint, hud_control):
 class CarController:
   def __init__(self, dbc_name, CP, VM):
     self.CP = CP
-    self.params = CarControllerParams(CP)
+    self.params = CarControllerParams(CP, 0)
     self.packer = CANPacker(dbc_name)
     self.angle_limit_counter = 0
     self.frame = 0
@@ -57,6 +57,8 @@ class CarController:
   def update(self, CC, CS):
     actuators = CC.actuators
     hud_control = CC.hudControl
+
+    self.params = CarControllerParams(self.CP, CS.out.vEgoRaw)
 
     # steering torque
     steer = actuators.steer
