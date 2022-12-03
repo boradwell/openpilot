@@ -2480,9 +2480,9 @@ python-versions = ">=3.6"
 [package.dependencies]
 numpy = [
     {version = ">=1.21.2", markers = "python_version >= \"3.6\" and platform_system == \"Darwin\" and platform_machine == \"arm64\""},
-    {version = ">=1.19.3", markers = "python_version >= \"3.6\" and platform_system == \"Linux\" and platform_machine == \"aarch64\""},
     {version = ">=1.14.5", markers = "python_version >= \"3.7\""},
     {version = ">=1.17.3", markers = "python_version >= \"3.8\""},
+    {version = ">=1.19.3", markers = "python_version >= \"3.6\" and platform_system == \"Linux\" and platform_machine == \"aarch64\""},
 ]
 
 [package.source]
@@ -4400,7 +4400,7 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "1.1"
 python-versions = "~3.8"
-content-hash = "e122be8daf544541ee1bde31e9235778ebfb8ee037adec819e5aba002a852c74"
+content-hash = "cbdc63f88f5c81df159c0e0faae606ff383758a5f292bc9b25e7c9013f0f234c"
 
 [metadata.files]
 adal = [
