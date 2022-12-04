@@ -20,14 +20,15 @@ from system.version import get_commit
 from tools.lib.framereader import FrameReader
 from tools.lib.logreader import LogReader
 
-TEST_ROUTE = "4cf7a6ad03080c90|2021-09-29--13-46-36"
-SEGMENT = 0
+TEST_ROUTE = "2f4452b03ccb98f0|2022-12-03--13-45-30"
+SEGMENT = 6
 MAX_FRAMES = 100 if PC else 600
 
 SEND_EXTRA_INPUTS = bool(os.getenv("SEND_EXTRA_INPUTS", "0"))
 
 VIPC_STREAM = {"roadCameraState": VisionStreamType.VISION_STREAM_ROAD, "driverCameraState": VisionStreamType.VISION_STREAM_DRIVER,
                "wideRoadCameraState": VisionStreamType.VISION_STREAM_WIDE_ROAD}
+
 def get_log_fn(ref_commit, test_route):
   return f"{test_route}_model_tici_{ref_commit}.bz2"
 
@@ -37,6 +38,47 @@ def replace_calib(msg, calib):
   if calib is not None:
     msg.liveCalibration.rpyCalib = calib.tolist()
   return msg
+
+
+def nav_model_replay(lr):
+  pm = messaging.PubMaster(['liveLocationKalman', 'navRoute'])
+  sock = messaging.sub_sock('navModel', conflate=False, timeout=1000)
+
+  nav_frames = 20
+
+  log_msgs = []
+  try:
+    managed_processes['mapsd'].start()
+    managed_processes['navmodeld'].start()
+    time.sleep(2)
+
+    # setup position and route
+    nav = [m for m in lr if m.which() == 'navRoute']
+    llk = [m for m in lr if m.which() == 'liveLocationKalman']
+    assert len(nav) > 0 and len(llk) > 0
+    for _ in range(5):
+      for s in (llk, nav):
+        msg = s[0]
+        pm.send(msg.which(), msg.as_builder().to_bytes())
+      time.sleep(0.1)
+
+    messaging.drain_sock_raw(sock)
+
+    # 2Hz decimation, plus some init buffer
+    for cnt in range(nav_frames * 10 + 5):
+      msg = llk[0]
+      print("sending", cnt)
+      pm.send(msg.which(), msg.as_builder().to_bytes())
+      time.sleep(0.05)
+
+    # wait until all outputs are ready
+    time.sleep(2)
+    log_msgs = messaging.drain_sock(sock)
+  finally:
+    managed_processes['mapsd'].stop()
+    managed_processes['navmodeld'].stop()
+
+  return log_msgs[:nav_frames]
 
 
 def model_replay(lr, frs):
@@ -154,8 +196,9 @@ if __name__ == "__main__":
     'wideRoadCameraState': FrameReader(get_url(TEST_ROUTE, SEGMENT, log_type="ecamera"), readahead=True)
   }
 
-  # run replay
+  # run replays
   log_msgs = model_replay(lr, frs)
+  log_msgs += nav_model_replay(lr)
 
   # get diff
   failed = False
