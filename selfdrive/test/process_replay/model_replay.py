@@ -65,10 +65,8 @@ def nav_model_replay(lr):
     messaging.drain_sock_raw(sock)
 
     # 2Hz decimation, plus some init buffer
-    for cnt in range(nav_frames * 10 + 5):
-      msg = llk[0]
-      print("sending", cnt)
-      pm.send(msg.which(), msg.as_builder().to_bytes())
+    for _ in range(nav_frames * 10 + 5):
+      pm.send(llk[0].which(), llk[0].as_builder().to_bytes())
       time.sleep(0.05)
 
     # wait until all outputs are ready
@@ -233,7 +231,7 @@ if __name__ == "__main__":
       failed = True
 
   # upload new refs
-  if (update or failed) and not PC:
+  if update or failed:
     from selfdrive.test.openpilotci import upload_file
 
     print("Uploading new refs")
@@ -241,10 +239,11 @@ if __name__ == "__main__":
     new_commit = get_commit()
     log_fn = get_log_fn(new_commit, TEST_ROUTE)
     save_log(log_fn, log_msgs)
-    try:
-      upload_file(log_fn, os.path.basename(log_fn))
-    except Exception as e:
-      print("failed to upload", e)
+    if not PC:
+      try:
+        upload_file(log_fn, os.path.basename(log_fn))
+      except Exception as e:
+        print("failed to upload", e)
 
     with open(ref_commit_fn, 'w') as f:
       f.write(str(new_commit))
